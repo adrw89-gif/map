@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -366,8 +366,32 @@ function getPointKey(lat, lng) {
     return `${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
 
-function openEditPopup(marker, pointData, key) {
-    const editContent = `
+function updateTooltip(marker, pointData) {
+    const addressStr = pointData.address || "Recherche d'adresse...";
+    const commentHTML = pointData.comment ? `<div class="tooltip-comment">${pointData.comment}</div>` : '';
+
+    marker.bindTooltip(`
+        <div>${addressStr}</div>
+        ${commentHTML}
+    `, {
+        direction: 'top',
+        className: 'custom-tooltip',
+        offset: [0, -6]
+    });
+}
+
+function getPointViewHTML(pointData, key) {
+    return `
+        <div class="popup-container">
+            <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
+            ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
+            <button class="edit-btn-popup edit-trigger-btn" data-key="${key}">Modifier</button>
+        </div>
+    `;
+}
+
+function getPointEditHTML(pointData, key) {
+    return `
         <div class="popup-container">
             <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
             
@@ -384,20 +408,16 @@ function openEditPopup(marker, pointData, key) {
             <textarea id="commentInput-${key}" placeholder="Ajouter un commentaire...">${pointData.comment || ''}</textarea>
         </div>
     `;
-
-    marker.bindPopup(editContent).openPopup();
 }
 
-// Écouteur global pour gérer les interactions dans les popups sans conflits tactiles
+// Gestion globale des clics/événements dans les popups
 map.on('popupopen', function(e) {
     const popupNode = e.popup.getElement();
     if (!popupNode) return;
 
-    // Empêche la fermeture de la popup lors d'un clic/toucher à l'intérieur
     L.DomEvent.disableClickPropagation(popupNode);
     L.DomEvent.disableScrollPropagation(popupNode);
 
-    // Si c'est un bouton de bascule vers le mode d'édition
     const triggerBtn = popupNode.querySelector('.edit-trigger-btn');
     if (triggerBtn) {
         L.DomEvent.on(triggerBtn, 'click touchstart', function(ev) {
@@ -407,12 +427,11 @@ map.on('popupopen', function(e) {
             const key = triggerBtn.getAttribute('data-key');
             const marker = e.popup._source;
             if (marker && key && POINT_OVERRIDES[key]) {
-                openEditPopup(marker, POINT_OVERRIDES[key], key);
+                marker.setPopupContent(getPointEditHTML(POINT_OVERRIDES[key], key));
             }
         });
     }
 
-    // Si c'est les sélecteurs de mode d'édition
     const keyMatch = popupNode.innerHTML.match(/colorSelect-([\d\.\,-]+)/);
     if (keyMatch && keyMatch[1]) {
         const key = keyMatch[1];
@@ -440,6 +459,14 @@ map.on('popupopen', function(e) {
     }
 });
 
+// Réinitialise le contenu de la popup sur le mode "Vue" quand elle se ferme
+map.on('popupclose', function(e) {
+    const marker = e.popup._source;
+    if (marker && marker._pointKey && POINT_OVERRIDES[marker._pointKey]) {
+        marker.setPopupContent(getPointViewHTML(POINT_OVERRIDES[marker._pointKey], marker._pointKey));
+    }
+});
+
 function renderMapData() {
     gpxLayerGroup.clearLayers();
     const gpxCard = document.getElementById('gpxCard');
@@ -463,6 +490,7 @@ function renderMapData() {
 
                 const pointData = POINT_OVERRIDES[key];
                 const marker = L.marker(latlng, { icon: createSquareIcon(pointData.color) });
+                marker._pointKey = key;
 
                 if (!pointData.address || pointData.address === "Adresse inconnue") {
                     fetchAddress(latlng.lat, latlng.lng).then(addr => {
@@ -473,18 +501,7 @@ function renderMapData() {
                 }
 
                 updateTooltip(marker, pointData);
-
-                // Au clic simple, on affiche les infos avec un bouton de modification totalement fonctionnel
-                marker.on('click', (e) => {
-                    const viewContent = `
-                        <div class="popup-container">
-                            <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
-                            ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
-                            <button class="edit-btn-popup edit-trigger-btn" data-key="${key}">Modifier</button>
-                        </div>
-                    `;
-                    marker.bindPopup(viewContent).openPopup();
-                });
+                marker.bindPopup(getPointViewHTML(pointData, key));
 
                 return marker;
             }
@@ -496,20 +513,6 @@ function renderMapData() {
     }
 
     updateStatus();
-}
-
-function updateTooltip(marker, pointData) {
-    const addressStr = pointData.address || "Recherche d'adresse...";
-    const commentHTML = pointData.comment ? `<div class="tooltip-comment">${pointData.comment}</div>` : '';
-
-    marker.bindTooltip(`
-        <div>${addressStr}</div>
-        ${commentHTML}
-    `, {
-        direction: 'top',
-        className: 'custom-tooltip',
-        offset: [0, -6]
-    });
 }
 
 function updateStatus() {
@@ -612,7 +615,7 @@ window.addEventListener('keydown', function(e) {
     }
 });
 
-// Initialisation au démarrage
+// Initialisation
 loadFromLocalStorage();
 renderMapData();
 
