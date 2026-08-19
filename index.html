@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -220,14 +220,21 @@ body { display: flex; flex-direction: column; }
 }
 
 .edit-btn-popup {
-    margin-top: 6px;
+    margin-top: 8px;
+    background: var(--bg-input);
+    color: var(--accent-3);
+    border: 1px solid var(--accent-3);
+    border-radius: 3px;
+    padding: 8px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-align: center;
+}
+
+.edit-btn-popup:active {
     background: var(--accent-3);
     color: #fff;
-    border: none;
-    border-radius: 3px;
-    padding: 6px;
-    cursor: pointer;
-    font-family: inherit;
 }
 </style>
 </head>
@@ -360,47 +367,78 @@ function getPointKey(lat, lng) {
 }
 
 function openEditPopup(marker, pointData, key) {
-    const editContent = document.createElement('div');
-    editContent.className = 'popup-container';
-    editContent.innerHTML = `
-        <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
-        
-        <label>Couleur du point :</label>
-        <select id="colorSelect-${key}">
-            <option value="red" ${pointData.color === 'red' ? 'selected' : ''}>Rouge</option>
-            <option value="blue" ${pointData.color === 'blue' ? 'selected' : ''}>Bleu</option>
-            <option value="yellow" ${pointData.color === 'yellow' ? 'selected' : ''}>Jaune</option>
-            <option value="green" ${pointData.color === 'green' ? 'selected' : ''}>Vert</option>
-            <option value="white" ${pointData.color === 'white' ? 'selected' : ''}>Blanc</option>
-        </select>
-        
-        <label>Commentaire :</label>
-        <textarea id="commentInput-${key}" placeholder="Ajouter un commentaire...">${pointData.comment || ''}</textarea>
+    const editContent = `
+        <div class="popup-container">
+            <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
+            
+            <label>Couleur du point :</label>
+            <select id="colorSelect-${key}">
+                <option value="red" ${pointData.color === 'red' ? 'selected' : ''}>Rouge</option>
+                <option value="blue" ${pointData.color === 'blue' ? 'selected' : ''}>Bleu</option>
+                <option value="yellow" ${pointData.color === 'yellow' ? 'selected' : ''}>Jaune</option>
+                <option value="green" ${pointData.color === 'green' ? 'selected' : ''}>Vert</option>
+                <option value="white" ${pointData.color === 'white' ? 'selected' : ''}>Blanc</option>
+            </select>
+            
+            <label>Commentaire :</label>
+            <textarea id="commentInput-${key}" placeholder="Ajouter un commentaire...">${pointData.comment || ''}</textarea>
+        </div>
     `;
 
     marker.bindPopup(editContent).openPopup();
+}
 
-    setTimeout(() => {
-        const selectEl = document.getElementById(`colorSelect-${key}`);
-        const commentEl = document.getElementById(`commentInput-${key}`);
+// Écouteur global pour gérer les interactions dans les popups sans conflits tactiles
+map.on('popupopen', function(e) {
+    const popupNode = e.popup.getElement();
+    if (!popupNode) return;
+
+    // Empêche la fermeture de la popup lors d'un clic/toucher à l'intérieur
+    L.DomEvent.disableClickPropagation(popupNode);
+    L.DomEvent.disableScrollPropagation(popupNode);
+
+    // Si c'est un bouton de bascule vers le mode d'édition
+    const triggerBtn = popupNode.querySelector('.edit-trigger-btn');
+    if (triggerBtn) {
+        L.DomEvent.on(triggerBtn, 'click touchstart', function(ev) {
+            L.DomEvent.stopPropagation(ev);
+            L.DomEvent.preventDefault(ev);
+            
+            const key = triggerBtn.getAttribute('data-key');
+            const marker = e.popup._source;
+            if (marker && key && POINT_OVERRIDES[key]) {
+                openEditPopup(marker, POINT_OVERRIDES[key], key);
+            }
+        });
+    }
+
+    // Si c'est les sélecteurs de mode d'édition
+    const keyMatch = popupNode.innerHTML.match(/colorSelect-([\d\.\,-]+)/);
+    if (keyMatch && keyMatch[1]) {
+        const key = keyMatch[1];
+        const pointData = POINT_OVERRIDES[key];
+        const marker = e.popup._source;
+
+        const selectEl = popupNode.querySelector(`#colorSelect-${key}`);
+        const commentEl = popupNode.querySelector(`#commentInput-${key}`);
 
         if (selectEl) {
-            selectEl.addEventListener('change', (evt) => {
-                pointData.color = evt.target.value;
+            L.DomEvent.on(selectEl, 'change', function(ev) {
+                pointData.color = ev.target.value;
+                marker.setIcon(createSquareIcon(pointData.color));
                 saveToLocalStorage();
-                renderMapData();
             });
         }
 
         if (commentEl) {
-            commentEl.addEventListener('input', (evt) => {
-                pointData.comment = evt.target.value;
+            L.DomEvent.on(commentEl, 'input', function(ev) {
+                pointData.comment = ev.target.value;
                 saveToLocalStorage();
                 updateTooltip(marker, pointData);
             });
         }
-    }, 50);
-}
+    }
+});
 
 function renderMapData() {
     gpxLayerGroup.clearLayers();
@@ -436,27 +474,16 @@ function renderMapData() {
 
                 updateTooltip(marker, pointData);
 
-                // Clic simple avec un bouton d'édition direct (parfait pour mobile)
+                // Au clic simple, on affiche les infos avec un bouton de modification totalement fonctionnel
                 marker.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    const popDiv = document.createElement('div');
-                    popDiv.className = 'popup-container';
-                    popDiv.innerHTML = `
-                        <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
-                        ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
-                        <button class="edit-btn-popup" id="editBtn-${key}">✏️ Modifier le point</button>
+                    const viewContent = `
+                        <div class="popup-container">
+                            <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
+                            ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
+                            <button class="edit-btn-popup edit-trigger-btn" data-key="${key}">Modifier</button>
+                        </div>
                     `;
-
-                    marker.bindPopup(popDiv).openPopup();
-
-                    setTimeout(() => {
-                        const btn = document.getElementById(`editBtn-${key}`);
-                        if (btn) {
-                            btn.addEventListener('click', () => {
-                                openEditPopup(marker, pointData, key);
-                            });
-                        }
-                    }, 50);
+                    marker.bindPopup(viewContent).openPopup();
                 });
 
                 return marker;
