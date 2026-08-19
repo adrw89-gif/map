@@ -27,12 +27,13 @@
     --accent-3: #569cd6;
     --danger: #f44747;
     --map-land: #121212;
-    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
 }
 
 * { 
     box-sizing: border-box; 
     -webkit-touch-callout: none;
+    font-family: var(--font-mono);
 }
 
 html, body {
@@ -67,7 +68,7 @@ body { display: flex; flex-direction: column; }
 .btn {
     padding: 8px 12px;
     font-size: 12px;
-    font-family: inherit;
+    font-family: var(--font-mono);
     font-weight: normal;
     cursor: pointer;
     border: 1px solid var(--border);
@@ -122,7 +123,7 @@ body { display: flex; flex-direction: column; }
     font-size: 16px;
     cursor: pointer;
     padding: 4px 8px;
-    font-family: inherit;
+    font-family: var(--font-mono);
 }
 
 #status {
@@ -175,7 +176,7 @@ body { display: flex; flex-direction: column; }
 .square-green { background-color: #4ec9b0; }
 .square-white { background-color: #ffffff; }
 
-/* Tooltip (Hover / Clic) */
+/* Tooltip (Horizontale & Monospace) */
 .custom-tooltip {
     background-color: var(--bg-panel);
     color: var(--text);
@@ -185,13 +186,17 @@ body { display: flex; flex-direction: column; }
     font-size: 11px;
     font-family: var(--font-mono);
     font-weight: normal;
-    width: max-content;
-    min-width: 120px;
-    max-width: 80vw;
-    white-space: normal;
-    word-break: break-word;
+    width: max-content !important;
+    max-width: 85vw !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
     line-height: 1.4;
     box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+}
+
+.custom-tooltip div {
+    white-space: nowrap !important;
+    font-family: var(--font-mono) !important;
 }
 
 .tooltip-comment {
@@ -201,6 +206,7 @@ body { display: flex; flex-direction: column; }
     font-size: 10px;
     border-top: 1px dashed var(--border);
     padding-top: 4px;
+    white-space: normal !important;
 }
 
 /* Popups adaptées */
@@ -208,7 +214,7 @@ body { display: flex; flex-direction: column; }
     background: var(--bg-panel);
     color: var(--text);
     border: 1px solid var(--border);
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
     font-weight: normal;
     border-radius: 4px;
     max-width: 85vw;
@@ -219,6 +225,7 @@ body { display: flex; flex-direction: column; }
     flex-direction: column;
     gap: 8px;
     font-size: 11px;
+    font-family: var(--font-mono) !important;
 }
 
 .popup-container textarea {
@@ -227,7 +234,7 @@ body { display: flex; flex-direction: column; }
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 6px;
-    font-family: inherit;
+    font-family: var(--font-mono);
     font-size: 12px;
     resize: vertical;
     min-height: 50px;
@@ -239,7 +246,7 @@ body { display: flex; flex-direction: column; }
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 6px;
-    font-family: inherit;
+    font-family: var(--font-mono);
     font-size: 12px;
 }
 
@@ -299,7 +306,7 @@ const worldOuter = [
     [90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]
 ];
 
-// SAUVEGARDE AUTOMATIQUE LOCALSTORAGE (POUR MOBILE)
+// SAUVEGARDE AUTOMATIQUE LOCALSTORAGE
 function saveToLocalStorage() {
     try {
         localStorage.setItem('APP_GPX_DATA', JSON.stringify(EMBEDDED_GPX));
@@ -309,7 +316,7 @@ function saveToLocalStorage() {
     }
 }
 
-// CHARGEMENT AUTOMATIQUE LOCALSTORAGE (POUR MOBILE)
+// CHARGEMENT AUTOMATIQUE LOCALSTORAGE
 function loadFromLocalStorage() {
     try {
         const savedGpx = localStorage.getItem('APP_GPX_DATA');
@@ -515,7 +522,7 @@ function updateTooltip(marker, pointData) {
 }
 
 function updateStatus() {
-    let msg = EMBEDDED_GPX ? `Fichier GPX "${EMBEDDED_GPX.name}" chargé.` : "Importez un fichier GPX pour commencer.";
+    let msg = EMBEDDED_GPX ? `Fichier GPX "${EMBEDDED_GPX.name}" chargé.` : "Importez un GPX pour commencer.";
     document.getElementById('status').textContent = msg;
 }
 
