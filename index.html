@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>CartoGPX</title>
+<title>Consultateur GPX Interactive</title>
 
 <!-- Mode Application Web iOS / Android -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CartoGPX">
+<meta name="apple-mobile-web-app-title" content="Consultateur GPX">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1e1e1e">
 
@@ -27,7 +27,7 @@
     --accent-3: #569cd6;
     --danger: #f44747;
     --map-land: #121212;
-    --font-mono: -apple-system, BlinkMacSystemFont, "SFMono-Regular", Consolas, monospace;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
 }
 
 * { 
@@ -43,6 +43,7 @@ html, body {
     font-family: var(--font-mono);
     background: var(--bg);
     color: var(--text);
+    font-weight: normal;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
@@ -56,7 +57,7 @@ body { display: flex; flex-direction: column; }
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 8px 10px;
     padding: 10px 12px;
     background: var(--bg-panel);
     border-bottom: 1px solid var(--border);
@@ -67,13 +68,13 @@ body { display: flex; flex-direction: column; }
     padding: 8px 12px;
     font-size: 12px;
     font-family: inherit;
-    font-weight: 500;
+    font-weight: normal;
     cursor: pointer;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     background: var(--bg-input);
     color: var(--text);
-    min-height: 40px;
+    min-height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -81,7 +82,7 @@ body { display: flex; flex-direction: column; }
     -webkit-tap-highlight-color: transparent;
 }
 
-.btn:active { opacity: 0.7; }
+.btn:hover { border-color: var(--accent-3); color: #fff; }
 
 .btn.active {
     background: var(--accent-3);
@@ -89,8 +90,15 @@ body { display: flex; flex-direction: column; }
     border-color: var(--accent-3);
 }
 
-#fileLabel { border-color: var(--accent-3); color: var(--accent-3); }
-#resetBtn { border-color: var(--danger); color: var(--danger); }
+#saveBtn {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+#fileLabel {
+    border-color: var(--accent-3);
+    color: var(--accent-3);
+}
 
 #gpxCard {
     display: none;
@@ -98,20 +106,23 @@ body { display: flex; flex-direction: column; }
     gap: 8px;
     background: var(--bg-input);
     border: 1px solid var(--accent);
-    border-radius: 6px;
+    border-radius: 4px;
     padding: 4px 10px;
     font-size: 12px;
     color: var(--accent);
-    min-height: 40px;
+    font-family: var(--font-mono);
+    min-height: 38px;
 }
 
 #gpxCard button {
     background: transparent;
     border: none;
     color: var(--danger);
+    font-weight: normal;
     font-size: 16px;
     cursor: pointer;
     padding: 4px 8px;
+    font-family: inherit;
 }
 
 #status {
@@ -119,6 +130,7 @@ body { display: flex; flex-direction: column; }
     color: var(--text-dim);
     flex: 1 1 100%;
     order: 10;
+    font-family: var(--font-mono);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -126,14 +138,30 @@ body { display: flex; flex-direction: column; }
 
 #map { flex: 1 1 auto; background: var(--map-land); }
 
-/* Layout Mobile */
+/* Adaptations spécifiques Écrans Mobiles */
 @media (max-width: 600px) {
-    #toolbar { padding: 8px; gap: 6px; }
-    .btn { flex: 1 1 calc(50% - 4px); font-size: 11px; }
-    #gpxCard { flex: 1 1 100%; justify-content: space-between; }
+    #toolbar {
+        padding: 8px;
+        gap: 6px;
+    }
+    
+    .btn {
+        flex: 1 1 calc(50% - 6px);
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+
+    #gpxCard {
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+
+    #status {
+        font-size: 10px;
+    }
 }
 
-/* Marqueurs */
+/* Marqueurs tactiles */
 .square-marker {
     width: 14px !important;
     height: 14px !important;
@@ -143,21 +171,26 @@ body { display: flex; flex-direction: column; }
 
 .square-red { background-color: #ff3333; }
 .square-blue { background-color: #569cd6; }
-.square-yellow { background-color: #ffee00; border-color: #b8ab00; }
+.square-yellow { background-color: #ffee00; border-color: #b8ab00; box-shadow: 0 0 5px rgba(255, 238, 0, 0.4); }
 .square-green { background-color: #4ec9b0; }
 .square-white { background-color: #ffffff; }
 
-/* Tooltip & Popups */
+/* Tooltip (Hover / Clic) */
 .custom-tooltip {
     background-color: var(--bg-panel);
     color: var(--text);
     border: 1px solid var(--accent);
-    border-radius: 6px;
+    border-radius: 4px;
     padding: 8px 12px;
     font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: normal;
+    width: max-content;
+    min-width: 120px;
     max-width: 80vw;
     white-space: normal;
     word-break: break-word;
+    line-height: 1.4;
     box-shadow: 0 4px 12px rgba(0,0,0,0.7);
 }
 
@@ -170,11 +203,14 @@ body { display: flex; flex-direction: column; }
     padding-top: 4px;
 }
 
+/* Popups adaptées */
 .leaflet-popup-content-wrapper {
     background: var(--bg-panel);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-weight: normal;
+    border-radius: 4px;
     max-width: 85vw;
 }
 
@@ -182,17 +218,35 @@ body { display: flex; flex-direction: column; }
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 12px;
+    font-size: 11px;
 }
 
-.popup-container textarea, .popup-container select {
+.popup-container textarea {
     background: var(--bg-input);
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: 3px;
+    padding: 6px;
     font-family: inherit;
     font-size: 12px;
+    resize: vertical;
+    min-height: 50px;
+}
+
+.popup-container select {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.hint-text {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
 }
 </style>
 </head>
@@ -200,18 +254,19 @@ body { display: flex; flex-direction: column; }
 <body>
 
 <div id="toolbar">
+    <button id="saveBtn" class="btn">Enregistrer (Ctrl+S)</button>
+    
     <label class="btn" id="fileLabel" for="gpxFileInput">Importer GPX</label>
     <input type="file" id="gpxFileInput" accept=".gpx" style="display:none;">
 
-    <button id="limitFranceBtn" class="btn">Limiter la France</button>
-    <button id="resetBtn" class="btn">Effacer tout</button>
+    <button id="limitFranceBtn" class="btn">Limiter à la France</button>
 
     <div id="gpxCard">
         <span id="gpxName">NomFichier.gpx</span>
-        <button id="removeGpxBtn">X</button>
+        <button id="removeGpxBtn" title="Supprimer le GPX">X</button>
     </div>
 
-    <span id="status">Chargement...</span>
+    <span id="status">Importez un GPX pour commencer.</span>
 </div>
 
 <div id="map"></div>
@@ -223,6 +278,7 @@ body { display: flex; flex-direction: column; }
 let EMBEDDED_GPX = null;
 let POINT_OVERRIDES = {}; 
 
+let fileHandle = null;
 let isFranceLimited = false;
 let franceMaskLayer = null;
 
@@ -243,7 +299,7 @@ const worldOuter = [
     [90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]
 ];
 
-// SAUVEGARDE AUTOMATIQUE DANS LE TÉLÉPHONE
+// SAUVEGARDE AUTOMATIQUE LOCALSTORAGE (POUR MOBILE)
 function saveToLocalStorage() {
     try {
         localStorage.setItem('APP_GPX_DATA', JSON.stringify(EMBEDDED_GPX));
@@ -253,7 +309,7 @@ function saveToLocalStorage() {
     }
 }
 
-// CHARGEMENT AUTOMATIQUE AU DÉMARRAGE
+// CHARGEMENT AUTOMATIQUE LOCALSTORAGE (POUR MOBILE)
 function loadFromLocalStorage() {
     try {
         const savedGpx = localStorage.getItem('APP_GPX_DATA');
@@ -401,31 +457,35 @@ function renderMapData() {
 
                 updateTooltip(marker, pointData);
 
+                // Clic simple (Desktop + Mobile)
                 marker.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
                     const viewContent = `
                         <div class="popup-container">
                             <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
                             ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
+                            <div class="hint-text">(Double-clic ou appui long pour modifier)</div>
                         </div>
                     `;
                     marker.bindPopup(viewContent).openPopup();
                 });
 
+                // Double-clic (Desktop)
+                marker.on('dblclick', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    openEditPopup(marker, pointData, key);
+                });
+
+                // Appui long (Mobile - Touch)
                 let touchTimer = null;
                 marker.on('mousedown touchstart', (e) => {
                     touchTimer = setTimeout(() => {
                         openEditPopup(marker, pointData, key);
-                    }, 500);
+                    }, 600);
                 });
 
                 marker.on('mouseup touchend touchmove', () => {
                     if (touchTimer) clearTimeout(touchTimer);
-                });
-
-                marker.on('dblclick', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    openEditPopup(marker, pointData, key);
                 });
 
                 return marker;
@@ -455,7 +515,7 @@ function updateTooltip(marker, pointData) {
 }
 
 function updateStatus() {
-    let msg = EMBEDDED_GPX ? `GPX : "${EMBEDDED_GPX.name}" (Sauvegardé)` : "Importez un fichier GPX.";
+    let msg = EMBEDDED_GPX ? `Fichier GPX "${EMBEDDED_GPX.name}" chargé.` : "Importez un fichier GPX pour commencer.";
     document.getElementById('status').textContent = msg;
 }
 
@@ -483,14 +543,14 @@ document.getElementById('gpxFileInput').addEventListener('change', function(e) {
                 map.fitBounds(tempLayer.getBounds());
             }
         } catch (err) {
-            alert("Erreur de lecture du fichier GPX.");
+            alert("Erreur lors de la lecture du fichier GPX.");
         }
     };
     reader.readAsText(file);
 });
 
 document.getElementById('removeGpxBtn').addEventListener('click', function() {
-    if (confirm("Supprimer le GPX de la carte ?")) {
+    if (confirm("Supprimer le fichier GPX de la carte ?")) {
         EMBEDDED_GPX = null;
         POINT_OVERRIDES = {};
         localStorage.removeItem('APP_GPX_DATA');
@@ -500,10 +560,57 @@ document.getElementById('removeGpxBtn').addEventListener('click', function() {
     }
 });
 
-document.getElementById('resetBtn').addEventListener('click', function() {
-    if (confirm("Voulez-vous tout effacer et réinitialiser l'application ?")) {
-        localStorage.clear();
-        location.reload();
+async function saveFileDirectly() {
+    let htmlContent = document.documentElement.outerHTML;
+
+    const regexGpx = /let EMBEDDED_GPX = .*?;/s;
+    const regexOverrides = /let POINT_OVERRIDES = .*?;/s;
+
+    htmlContent = htmlContent.replace(regexGpx, `let EMBEDDED_GPX = ${JSON.stringify(EMBEDDED_GPX, null, 2)};`);
+    htmlContent = htmlContent.replace(regexOverrides, `let POINT_OVERRIDES = ${JSON.stringify(POINT_OVERRIDES, null, 2)};`);
+    
+    htmlContent = "<!DOCTYPE html>\n<html lang=\"fr\">\n" + htmlContent + "\n</html>";
+
+    try {
+        if (!fileHandle && 'showSaveFilePicker' in window) {
+            fileHandle = await window.showSaveFilePicker({
+                suggestedName: 'ma_carte.html',
+                types: [{
+                    description: 'Fichier Carte HTML',
+                    accept: { 'text/html': ['.html'] },
+                }],
+            });
+        }
+
+        if (fileHandle) {
+            const writable = await fileHandle.createWritable();
+            await writable.write(htmlContent);
+            await writable.close();
+            alert("Fichier enregistré avec succès !");
+        } else {
+            downloadFallback(htmlContent);
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            downloadFallback(htmlContent);
+        }
+    }
+}
+
+function downloadFallback(content) {
+    const blob = new Blob([content], { type: 'text/html;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ma_carte.html';
+    link.click();
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveFileDirectly);
+
+window.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveFileDirectly();
     }
 });
 
