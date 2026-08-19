@@ -139,30 +139,13 @@ body { display: flex; flex-direction: column; }
 
 #map { flex: 1 1 auto; background: var(--map-land); }
 
-/* Adaptations spécifiques Écrans Mobiles */
 @media (max-width: 600px) {
-    #toolbar {
-        padding: 8px;
-        gap: 6px;
-    }
-    
-    .btn {
-        flex: 1 1 calc(50% - 6px);
-        font-size: 11px;
-        padding: 6px 8px;
-    }
-
-    #gpxCard {
-        flex: 1 1 100%;
-        justify-content: space-between;
-    }
-
-    #status {
-        font-size: 10px;
-    }
+    #toolbar { padding: 8px; gap: 6px; }
+    .btn { flex: 1 1 calc(50% - 6px); font-size: 11px; padding: 6px 8px; }
+    #gpxCard { flex: 1 1 100%; justify-content: space-between; }
+    #status { font-size: 10px; }
 }
 
-/* Marqueurs tactiles */
 .square-marker {
     width: 14px !important;
     height: 14px !important;
@@ -176,7 +159,6 @@ body { display: flex; flex-direction: column; }
 .square-green { background-color: #4ec9b0; }
 .square-white { background-color: #ffffff; }
 
-/* Tooltip (Horizontale & Monospace) */
 .custom-tooltip {
     background-color: var(--bg-panel);
     color: var(--text);
@@ -209,7 +191,6 @@ body { display: flex; flex-direction: column; }
     white-space: normal !important;
 }
 
-/* Popups adaptées */
 .leaflet-popup-content-wrapper {
     background: var(--bg-panel);
     color: var(--text);
@@ -228,19 +209,7 @@ body { display: flex; flex-direction: column; }
     font-family: var(--font-mono) !important;
 }
 
-.popup-container textarea {
-    background: var(--bg-input);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 6px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    resize: vertical;
-    min-height: 50px;
-}
-
-.popup-container select {
+.popup-container textarea, .popup-container select {
     background: var(--bg-input);
     color: var(--text);
     border: 1px solid var(--border);
@@ -250,10 +219,15 @@ body { display: flex; flex-direction: column; }
     font-size: 12px;
 }
 
-.hint-text {
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 4px;
+.edit-btn-popup {
+    margin-top: 6px;
+    background: var(--accent-3);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 6px;
+    cursor: pointer;
+    font-family: inherit;
 }
 </style>
 </head>
@@ -306,7 +280,6 @@ const worldOuter = [
     [90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]
 ];
 
-// SAUVEGARDE AUTOMATIQUE LOCALSTORAGE
 function saveToLocalStorage() {
     try {
         localStorage.setItem('APP_GPX_DATA', JSON.stringify(EMBEDDED_GPX));
@@ -316,7 +289,6 @@ function saveToLocalStorage() {
     }
 }
 
-// CHARGEMENT AUTOMATIQUE LOCALSTORAGE
 function loadFromLocalStorage() {
     try {
         const savedGpx = localStorage.getItem('APP_GPX_DATA');
@@ -464,35 +436,27 @@ function renderMapData() {
 
                 updateTooltip(marker, pointData);
 
-                // Clic simple (Desktop + Mobile)
+                // Clic simple avec un bouton d'édition direct (parfait pour mobile)
                 marker.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
-                    const viewContent = `
-                        <div class="popup-container">
-                            <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
-                            ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
-                            <div class="hint-text">(Double-clic ou appui long pour modifier)</div>
-                        </div>
+                    const popDiv = document.createElement('div');
+                    popDiv.className = 'popup-container';
+                    popDiv.innerHTML = `
+                        <div><strong>Adresse :</strong><br>${pointData.address || "Chargement..."}</div>
+                        ${pointData.comment ? `<div><strong>Commentaire :</strong><br>${pointData.comment}</div>` : '<div style="color:var(--text-dim); font-style:italic;">Aucun commentaire.</div>'}
+                        <button class="edit-btn-popup" id="editBtn-${key}">✏️ Modifier le point</button>
                     `;
-                    marker.bindPopup(viewContent).openPopup();
-                });
 
-                // Double-clic (Desktop)
-                marker.on('dblclick', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    openEditPopup(marker, pointData, key);
-                });
+                    marker.bindPopup(popDiv).openPopup();
 
-                // Appui long (Mobile - Touch)
-                let touchTimer = null;
-                marker.on('mousedown touchstart', (e) => {
-                    touchTimer = setTimeout(() => {
-                        openEditPopup(marker, pointData, key);
-                    }, 600);
-                });
-
-                marker.on('mouseup touchend touchmove', () => {
-                    if (touchTimer) clearTimeout(touchTimer);
+                    setTimeout(() => {
+                        const btn = document.getElementById(`editBtn-${key}`);
+                        if (btn) {
+                            btn.addEventListener('click', () => {
+                                openEditPopup(marker, pointData, key);
+                            });
+                        }
+                    }, 50);
                 });
 
                 return marker;
